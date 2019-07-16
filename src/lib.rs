@@ -1,10 +1,12 @@
+#![allow(unconditional_recursion)]
+
+mod header;
+
 use std::os::raw::{c_int, c_void};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use lazy_static::lazy_static;
-
-mod header;
 
 // This redefinition is due to the following bindgen bug:
 // https://github.com/rust-lang/rust-bindgen/issues/1594
