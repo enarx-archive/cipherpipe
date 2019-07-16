@@ -8,7 +8,7 @@ mod header;
 
 // This redefinition is due to the following bindgen bug:
 // https://github.com/rust-lang/rust-bindgen/issues/1594
-pub const IPPROTO_TLS: c_int = header::IPPROTO_TLS as c_int;
+const IPPROTO_TLS: c_int = header::IPPROTO_TLS as c_int;
 
 // ============================================================================
 // Index Implementation
