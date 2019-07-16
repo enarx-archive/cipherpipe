@@ -85,12 +85,21 @@ macro_rules! next {
 }
 
 #[no_mangle]
-pub fn accept(fd: c_int, addr: *mut libc::sockaddr, addr_len: *mut libc::socklen_t) -> c_int {
+pub extern "C" fn accept(
+    fd: c_int,
+    addr: *mut libc::sockaddr,
+    addr_len: *mut libc::socklen_t,
+) -> c_int {
     accept4(fd, addr, addr_len, 0)
 }
 
 #[no_mangle]
-pub fn accept4(fd: c_int, addr: *mut libc::sockaddr, addr_len: *mut libc::socklen_t, flags: c_int) -> c_int {
+pub extern "C" fn accept4(
+    fd: c_int,
+    addr: *mut libc::sockaddr,
+    addr_len: *mut libc::socklen_t,
+    flags: c_int,
+) -> c_int {
     let con = next!(accept4(fd, addr, addr_len, flags));
 
     // If this isn't a TLS socket, just return.
@@ -107,7 +116,11 @@ pub fn accept4(fd: c_int, addr: *mut libc::sockaddr, addr_len: *mut libc::sockle
 }
 
 #[no_mangle]
-pub extern fn bind(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t) -> c_int {
+pub extern "C" fn bind(
+    fd: c_int,
+    addr: *const libc::sockaddr,
+    len: libc::socklen_t,
+) -> c_int {
     let lock = match INDEX.get(fd) {
         None => return next!(bind(fd, addr, len)),
         Some(s) => s,
@@ -128,16 +141,20 @@ pub extern fn bind(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t)
     0
 }
 
-//#[no_mangle]
-//pub fn send(fd: c_int, buf: *const c_void, n: usize, flags: c_int) -> isize {
-//    match INDEX.get(fd) {
-//        Some(s) => s.send(fd, buf, n, flags),
-//        None => SEND(fd, buf, n, flags),
-//    }
-//}
+/*#[no_mangle]
+pub extern "C" fn send(
+    fd: c_int,
+    buf: *const c_void,
+    n: usize, flags: c_int,
+) -> isize {
+    match INDEX.get(fd) {
+        Some(s) => s.send(fd, buf, n, flags),
+        None => SEND(fd, buf, n, flags),
+    }
+}*/
 
 /*#[no_mangle]
-pub fn sendto(
+pub extern "C" fn sendto(
     fd: c_int,
     buf: *const c_void,
     n: usize,
@@ -156,7 +173,11 @@ pub fn sendto(
 }*/
 
 #[no_mangle]
-pub extern fn sendmsg(fd: c_int, message: *const c_void, flags: c_int) -> isize {
+pub extern "C" fn sendmsg(
+    fd: c_int,
+    message: *const c_void,
+    flags: c_int,
+) -> isize {
     match INDEX.get(fd) {
         Some(_) => error(libc::ENOSYS, -1isize),
         None => next!(sendmsg(fd, message, flags)),
@@ -164,7 +185,7 @@ pub extern fn sendmsg(fd: c_int, message: *const c_void, flags: c_int) -> isize 
 }
 
 /*#[no_mangle]
-pub extern fn setsockopt(
+pub extern "C" fn setsockopt(
     fd: c_int,
     level: c_int,
     optname: c_int,
@@ -174,8 +195,16 @@ pub extern fn setsockopt(
 }*/
 
 #[no_mangle]
-pub extern fn socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_int {
-    let protocol = if protocol == IPPROTO_TLS { libc::IPPROTO_TCP } else { protocol };
+pub extern "C" fn socket(
+    domain: c_int,
+    socktype: c_int,
+    protocol: c_int,
+) -> c_int {
+    let protocol = if protocol == IPPROTO_TLS {
+        libc::IPPROTO_TCP
+    } else {
+        protocol
+    };
 
     let fd = next!(socket(domain, socktype, protocol));
     if fd >= 0 && protocol == IPPROTO_TLS {
@@ -186,22 +215,35 @@ pub extern fn socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_int {
 }
 
 //#[no_mangle]
-//pub extern fn write(fd: c_int, buf: *const c_void, count: usize) -> isize {
+//pub extern "C" fn write(
+// fd: c_int,
+// buf: *const c_void,
+// count: usize,
+// ) -> isize {
 //}
 
 /*
 
 
 #[no_mangle]
-pub fn connect(fd: c_int, addr: *const sockaddr, len: socklen_t) -> c_int {}
+pub extern "C" fn connect(
+    fd: c_int,
+    addr: *const sockaddr,
+    len: socklen_t,
+) -> c_int {}
 
 
 
 #[no_mangle]
-pub fn recv(fd: c_int, buf: *mut c_void, n: usize, flags: c_int) -> isize {}
+pub extern "C" fn recv(
+    fd: c_int,
+    buf: *mut c_void,
+    n: usize,
+    flags: c_int,
+) -> isize {}
 
 #[no_mangle]
-pub fn sendto(
+pub extern "C" fn sendto(
     fd: c_int,
     buf: *const c_void,
     n: usize,
@@ -212,7 +254,7 @@ pub fn sendto(
 }
 
 #[no_mangle]
-pub fn recvfrom(
+pub extern "C" fn recvfrom(
     fd: c_int,
     buf: *mut c_void,
     n: usize,
@@ -223,7 +265,7 @@ pub fn recvfrom(
 }
 
 #[no_mangle]
-pub fn getsockopt(
+pub extern "C" fn getsockopt(
     fd: c_int,
     level: c_int,
     optname: c_int,
@@ -233,7 +275,7 @@ pub fn getsockopt(
 }
 
 #[no_mangle]
-pub fn setsockopt(
+pub extern "C" fn setsockopt(
     fd: c_int,
     level: c_int,
     optname: c_int,
@@ -243,12 +285,16 @@ pub fn setsockopt(
 }
 
 #[no_mangle]
-pub fn listen(fd: c_int, n: c_int) -> c_int {}
+pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {}
 
 #[no_mangle]
-pub fn accept(fd: c_int, addr: *mut sockaddr, addr_len: *mut socklen_t) -> c_int {}
+pub extern "C" fn accept(
+    fd: c_int,
+    addr: *mut sockaddr,
+    addr_len: *mut socklen_t,
+) -> c_int {}
 
 #[no_mangle]
-pub fn shutdown(fd: c_int, how: c_int) -> c_int {}
+pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {}
 
 */
