@@ -78,7 +78,9 @@ unsafe fn lookup<T>(_: T, name: &'static str) -> T {
 
 macro_rules! next {
     ($name:ident($($arg:expr),*)) => {
-        lookup($name, stringify!($name))($($arg),*)
+        unsafe {
+            lookup($name, stringify!($name))($($arg),*)
+        }
     };
 }
 
@@ -89,7 +91,7 @@ pub fn accept(fd: c_int, addr: *mut libc::sockaddr, addr_len: *mut libc::socklen
 
 #[no_mangle]
 pub fn accept4(fd: c_int, addr: *mut libc::sockaddr, addr_len: *mut libc::socklen_t, flags: c_int) -> c_int {
-    let con = unsafe { next!(accept4(fd, addr, addr_len, flags)) };
+    let con = next!(accept4(fd, addr, addr_len, flags));
 
     // If this isn't a TLS socket, just return.
     let lock = match INDEX.get(fd) {
@@ -139,7 +141,7 @@ pub fn sendto(
 pub extern fn sendmsg(fd: c_int, message: *const c_void, flags: c_int) -> isize {
     match INDEX.get(fd) {
         Some(_) => error(libc::ENOSYS, -1isize),
-        None => unsafe { next!(sendmsg(fd, message, flags)) },
+        None => next!(sendmsg(fd, message, flags)),
     }
 }
 
@@ -157,7 +159,7 @@ pub extern fn setsockopt(
 pub extern fn socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_int {
     let protocol = if protocol == IPPROTO_TLS { libc::IPPROTO_TCP } else { protocol };
 
-    let fd = unsafe { next!(socket(domain, socktype, protocol)) };
+    let fd = next!(socket(domain, socktype, protocol));
     if fd >= 0 && protocol == IPPROTO_TLS {
         INDEX.put(fd, Socket::Created)
     }
