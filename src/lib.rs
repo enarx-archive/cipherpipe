@@ -106,9 +106,27 @@ pub fn accept4(fd: c_int, addr: *mut libc::sockaddr, addr_len: *mut libc::sockle
     -1 as c_int
 }
 
-//#[no_mangle]
-//pub extern fn bind(fd: c_int, addr: *const sockaddr, len: socklen_t) -> c_int {
-//}
+#[no_mangle]
+pub extern fn bind(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t) -> c_int {
+    let lock = match INDEX.get(fd) {
+        None => return next!(bind(fd, addr, len)),
+        Some(s) => s,
+    };
+
+    let mut sock = lock.write().unwrap();
+
+    match *sock {
+        Socket::Created => (),
+        _ => return error(libc::EBADFD, -1),
+    }
+
+    if next!(bind(fd, addr, len)) == -1 {
+        return -1;
+    }
+
+    *sock = Socket::Bound(Parameters { client: false });
+    0
+}
 
 //#[no_mangle]
 //pub fn send(fd: c_int, buf: *const c_void, n: usize, flags: c_int) -> isize {
