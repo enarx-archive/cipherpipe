@@ -222,17 +222,36 @@ pub extern "C" fn socket(
 // ) -> isize {
 //}
 
-/*
+
 
 
 #[no_mangle]
 pub extern "C" fn connect(
     fd: c_int,
-    addr: *const sockaddr,
-    len: socklen_t,
-) -> c_int {}
+    addr: *const libc::sockaddr,
+    len: libc::socklen_t,
+) -> c_int {
+    let lock = match INDEX.get(fd) {
+        None => return next!(connect(fd, addr, len)),
+        Some(s) => s,
+    };
 
+    let mut sock = lock.write().unwrap();
 
+    match *sock {
+        Socket::Created => (),
+        _ => return error(libc::EBADFD, -1),
+    }
+
+    if next!(connect(fd, addr, len)) == -1 {
+        return -1;
+    }
+
+    *sock = Socket::Connected;
+    0
+}
+
+/*
 
 #[no_mangle]
 pub extern "C" fn recv(
