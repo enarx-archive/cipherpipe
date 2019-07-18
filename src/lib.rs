@@ -184,15 +184,6 @@ pub extern "C" fn sendmsg(
     }
 }
 
-/*#[no_mangle]
-pub extern "C" fn setsockopt(
-    fd: c_int,
-    level: c_int,
-    optname: c_int,
-    optval: *const c_void,
-    optlen: socklen_t,
-) -> c_int {
-}*/
 
 #[no_mangle]
 pub extern "C" fn socket(
@@ -261,16 +252,6 @@ pub extern "C" fn recv(
     flags: c_int,
 ) -> isize {}
 
-#[no_mangle]
-pub extern "C" fn sendto(
-    fd: c_int,
-    buf: *const c_void,
-    n: usize,
-    flags: c_int,
-    addr: *const sockaddr,
-    addr_len: socklen_t,
-) -> isize {
-}
 
 #[no_mangle]
 pub extern "C" fn recvfrom(
@@ -306,12 +287,6 @@ pub extern "C" fn setsockopt(
 #[no_mangle]
 pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {}
 
-#[no_mangle]
-pub extern "C" fn accept(
-    fd: c_int,
-    addr: *mut sockaddr,
-    addr_len: *mut socklen_t,
-) -> c_int {}
 
 #[no_mangle]
 pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {}
