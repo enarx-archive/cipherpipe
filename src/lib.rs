@@ -46,6 +46,7 @@ lazy_static! {
 
 // ============================================================================
 
+#[derive(Copy, Clone)]
 struct Parameters {
     client: bool,
 }
@@ -282,13 +283,32 @@ pub extern "C" fn setsockopt(
     optval: *const c_void,
     optlen: socklen_t,
 ) -> c_int {
+}*/
+
+#[no_mangle]
+pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {
+    let lock = match INDEX.get(fd) {
+        Some(s) => s,
+        None => return next!(listen(fd, n)),
+    };
+
+    let mut sock = lock.write().unwrap();
+
+    if let Socket::Bound(p) = *sock {
+        match next!(listen(fd, n)) {
+            0 => {
+                *sock = Socket::Listening(p);
+                return 0;
+            },
+            r => r,
+        };
+    }
+
+    error(libc::EBADFD, -1)
 }
 
-#[no_mangle]
-pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {}
 
-
-#[no_mangle]
+/*#[no_mangle]
 pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {}
 
 */
