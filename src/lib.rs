@@ -308,7 +308,24 @@ pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {
 }
 
 
-/*#[no_mangle]
-pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {}
+#[no_mangle]
+pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
+    let lock = match INDEX.get(fd) {
+        None => return next!(shutdown(fd, how)),
+        Some(s) => s,
+    };
 
-*/
+    let mut sock = lock.write().unwrap();
+
+    match *sock {
+        Socket::Established => (),
+        _ => return error(libc::EBADFD, -1),
+    }
+
+    if next!(shutdown(fd, how)) == -1 {
+        return -1;
+    }
+
+    *sock = Socket::Shutdown;
+    0
+}
