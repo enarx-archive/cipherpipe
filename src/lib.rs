@@ -129,17 +129,17 @@ pub extern "C" fn bind(
 
     let mut sock = lock.write().unwrap();
 
-    match *sock {
-        Socket::Created => (),
-        _ => return error(libc::EBADFD, -1),
+    if let Socket::Created = *sock {
+        return match next!(bind(fd, addr, len)) {
+            0 => {
+                *sock = Socket::Bound(Parameters { client: false });
+                0
+            },
+            r => r,
+        };
     }
 
-    if next!(bind(fd, addr, len)) == -1 {
-        return -1;
-    }
-
-    *sock = Socket::Bound(Parameters { client: false });
-    0
+    error(libc::EBADFD, -1)
 }
 
 /*#[no_mangle]
@@ -230,17 +230,17 @@ pub extern "C" fn connect(
 
     let mut sock = lock.write().unwrap();
 
-    match *sock {
-        Socket::Created => (),
-        _ => return error(libc::EBADFD, -1),
+    if let Socket::Created = *sock {
+        return match next!(connect(fd, addr, len)) {
+            0 => {
+                *sock = Socket::Connected;
+                0
+            },
+            r => r,
+        };
     }
 
-    if next!(connect(fd, addr, len)) == -1 {
-        return -1;
-    }
-
-    *sock = Socket::Connected;
-    0
+    error(libc::EBADFD, -1)
 }
 
 /*
@@ -295,10 +295,10 @@ pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {
     let mut sock = lock.write().unwrap();
 
     if let Socket::Bound(p) = *sock {
-        match next!(listen(fd, n)) {
+        return match next!(listen(fd, n)) {
             0 => {
                 *sock = Socket::Listening(p);
-                return 0;
+                0
             },
             r => r,
         };
@@ -317,15 +317,15 @@ pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
 
     let mut sock = lock.write().unwrap();
 
-    match *sock {
-        Socket::Established => (),
-        _ => return error(libc::EBADFD, -1),
+    if let Socket::Established = *sock {
+        return match next!(shutdown(fd, how)) {
+            0 => {
+                *sock = Socket::Shutdown;
+                0
+            },
+            r => r,
+        };
     }
 
-    if next!(shutdown(fd, how)) == -1 {
-        return -1;
-    }
-
-    *sock = Socket::Shutdown;
-    0
+    error(libc::EBADFD, -1)
 }
