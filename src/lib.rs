@@ -2,8 +2,8 @@
 
 mod header;
 
-use std::os::raw::{c_int, c_void};
 use std::collections::HashMap;
+use std::os::raw::{c_int, c_void};
 use std::sync::{Arc, RwLock};
 
 use lazy_static::lazy_static;
@@ -61,7 +61,7 @@ enum Socket {
 
     Client(rustls::ClientSession),
     Server(rustls::ServerSession),
-    Shutdown
+    Shutdown,
 }
 
 fn error<T>(errno: c_int, rv: T) -> T {
@@ -117,11 +117,7 @@ pub extern "C" fn accept4(
 }
 
 #[no_mangle]
-pub extern "C" fn bind(
-    fd: c_int,
-    addr: *const libc::sockaddr,
-    len: libc::socklen_t,
-) -> c_int {
+pub extern "C" fn bind(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t) -> c_int {
     let lock = match INDEX.get(fd) {
         None => return next!(bind(fd, addr, len)),
         Some(s) => s,
@@ -134,7 +130,7 @@ pub extern "C" fn bind(
             0 => {
                 *sock = Socket::Bound(Parameters { client: false });
                 0
-            },
+            }
             r => r,
         };
     }
@@ -174,24 +170,15 @@ pub extern "C" fn sendto(
 }*/
 
 #[no_mangle]
-pub extern "C" fn sendmsg(
-    fd: c_int,
-    message: *const c_void,
-    flags: c_int,
-) -> isize {
+pub extern "C" fn sendmsg(fd: c_int, message: *const c_void, flags: c_int) -> isize {
     match INDEX.get(fd) {
         Some(_) => error(libc::ENOSYS, -1isize),
         None => next!(sendmsg(fd, message, flags)),
     }
 }
 
-
 #[no_mangle]
-pub extern "C" fn socket(
-    domain: c_int,
-    socktype: c_int,
-    protocol: c_int,
-) -> c_int {
+pub extern "C" fn socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_int {
     let protocol = if protocol == IPPROTO_TLS {
         libc::IPPROTO_TCP
     } else {
@@ -214,15 +201,8 @@ pub extern "C" fn socket(
 // ) -> isize {
 //}
 
-
-
-
 #[no_mangle]
-pub extern "C" fn connect(
-    fd: c_int,
-    addr: *const libc::sockaddr,
-    len: libc::socklen_t,
-) -> c_int {
+pub extern "C" fn connect(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t) -> c_int {
     let lock = match INDEX.get(fd) {
         None => return next!(connect(fd, addr, len)),
         Some(s) => s,
@@ -235,7 +215,7 @@ pub extern "C" fn connect(
             0 => {
                 *sock = Socket::Connected;
                 0
-            },
+            }
             r => r,
         };
     }
@@ -244,23 +224,17 @@ pub extern "C" fn connect(
 }
 
 #[no_mangle]
-pub extern "C" fn recv(
-    fd: c_int,
-    buf: *mut c_void,
-    n: usize,
-    flags: c_int,
-) -> isize {
+pub extern "C" fn recv(fd: c_int, buf: *mut c_void, n: usize, flags: c_int) -> isize {
     match INDEX.get(fd) {
         None => return next!(recv(fd, buf, n, flags)),
         Some(s) => (),
     }
 
     return match flags {
-        0 => 0,//TODO: tls_read() implement
+        0 => 0, //TODO: tls_read() implement
         _ => error(libc::EINVAL, -1),
     };
 }
-
 
 #[no_mangle]
 pub extern "C" fn recvfrom(
@@ -315,14 +289,13 @@ pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {
             0 => {
                 *sock = Socket::Listening(p);
                 0
-            },
+            }
             r => r,
         };
     }
 
     error(libc::EBADFD, -1)
 }
-
 
 #[no_mangle]
 pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
@@ -338,7 +311,7 @@ pub extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
             0 => {
                 *sock = Socket::Shutdown;
                 0
-            },
+            }
             r => r,
         };
     }
