@@ -145,10 +145,10 @@ pub extern "C" fn send(fd: c_int, buf: *const c_void, n: usize, flags: c_int) ->
         Some(s) => (),
     }
 
-    return match flags {
+    match flags {
         0 => 0, //TODO: tls_write() implement
         _ => error(libc::EINVAL, -1),
-    };
+    }
 }
 
 #[no_mangle]
@@ -231,10 +231,10 @@ pub extern "C" fn recv(fd: c_int, buf: *mut c_void, n: usize, flags: c_int) -> i
         Some(s) => (),
     }
 
-    return match flags {
+    match flags {
         0 => 0, //TODO: tls_read() implement
         _ => error(libc::EINVAL, -1),
-    };
+    }
 }
 
 #[no_mangle]
@@ -250,10 +250,10 @@ pub extern "C" fn recvfrom(
         return recv(fd, buf, n, flags);
     }
 
-    return match INDEX.get(fd) {
+    match INDEX.get(fd) {
         None => next!(recvfrom(fd, buf, n, flags, addr, addr_len)),
         Some(s) => error(libc::ENOSYS, -1),
-    };
+    }
 }
 /*
 #[no_mangle]
