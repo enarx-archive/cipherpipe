@@ -243,13 +243,32 @@ pub extern "C" fn socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_i
     fd
 }
 
-//#[no_mangle]
-//pub extern "C" fn write(
-// fd: c_int,
-// buf: *const c_void,
-// count: usize,
-// ) -> isize {
-//}
+lazy_static! {
+    static ref WRITE_NEXT: extern "C" fn(fd: c_int, buf: *const c_void, count: usize) -> isize =
+        unsafe { lookup("write") };
+}
+
+#[no_mangle]
+pub extern "C" fn write(fd: c_int, buf: *const c_void, count: usize) -> isize {
+    match INDEX.get(fd) {
+        None => return WRITE_NEXT(fd, buf, count),
+        Some(s) => error(libc::ENOSYS, -1), //TODO: tls_write() implement
+    }
+}
+
+lazy_static! {
+    static ref READ_NEXT: extern "C" fn(fd: c_int, buf: *mut c_void, count: usize) -> isize =
+        unsafe { lookup("read") };
+}
+
+#[no_mangle]
+pub extern "C" fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize {
+    match INDEX.get(fd) {
+        None => return READ_NEXT(fd, buf, count),
+        Some(s) => error(libc::ENOSYS, -1), //TODO: tls_read() implement
+    }
+}
+
 lazy_static! {
     static ref CONNECT_NEXT: extern "C" fn(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t) -> c_int =
         unsafe { lookup("connect") };
