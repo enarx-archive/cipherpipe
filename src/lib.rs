@@ -138,36 +138,37 @@ pub extern "C" fn bind(fd: c_int, addr: *const libc::sockaddr, len: libc::sockle
     error(libc::EBADFD, -1)
 }
 
-/*#[no_mangle]
-pub extern "C" fn send(
-    fd: c_int,
-    buf: *const c_void,
-    n: usize, flags: c_int,
-) -> isize {
+#[no_mangle]
+pub extern "C" fn send(fd: c_int, buf: *const c_void, n: usize, flags: c_int) -> isize {
     match INDEX.get(fd) {
-        Some(s) => s.send(fd, buf, n, flags),
-        None => SEND(fd, buf, n, flags),
+        None => return next!(send(fd, buf, n, flags)),
+        Some(s) => (),
     }
-}*/
 
-/*#[no_mangle]
+    return match flags {
+        0 => 0, //TODO: tls_write() implement
+        _ => error(libc::EINVAL, -1),
+    };
+}
+
+#[no_mangle]
 pub extern "C" fn sendto(
     fd: c_int,
     buf: *const c_void,
     n: usize,
     flags: c_int,
-    addr: *const sockaddr,
-    addr_len: socklen_t,
+    addr: *const libc::sockaddr,
+    addr_len: libc::socklen_t,
 ) -> isize {
     if addr.is_null() && addr_len == 0 {
         return send(fd, buf, n, flags);
     }
 
     match INDEX.get(fd) {
-        Some(_) => error(libc::ENOSYS, -1isize),
-        None => SENDTO(fd, buf, n, flags, addr, addr_len),
+        Some(_) => error(libc::ENOSYS, -1),
+        None => next!(sendto(fd, buf, n, flags, addr, addr_len)),
     }
-}*/
+}
 
 #[no_mangle]
 pub extern "C" fn sendmsg(fd: c_int, message: *const c_void, flags: c_int) -> isize {
