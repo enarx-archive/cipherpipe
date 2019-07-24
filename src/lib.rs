@@ -194,13 +194,21 @@ pub extern "C" fn socket(domain: c_int, socktype: c_int, protocol: c_int) -> c_i
     fd
 }
 
-//#[no_mangle]
-//pub extern "C" fn write(
-// fd: c_int,
-// buf: *const c_void,
-// count: usize,
-// ) -> isize {
-//}
+#[no_mangle]
+pub extern "C" fn write(fd: c_int, buf: *const c_void, count: usize) -> isize {
+    match INDEX.get(fd) {
+        None => return next!(write(fd, buf, count)),
+        Some(s) => 0, //TODO: tls_write() implement
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize {
+    match INDEX.get(fd) {
+        None => return next!(read(fd, buf, count)),
+        Some(s) => 0, //TODO: tls_read() implement
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn connect(fd: c_int, addr: *const libc::sockaddr, len: libc::socklen_t) -> c_int {
