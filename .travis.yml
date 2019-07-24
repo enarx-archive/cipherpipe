@@ -1,0 +1,22 @@
+language: rust
+
+rust:
+  - 1.36.0
+  - stable
+  - beta
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
+before_script:
+- export PATH="$PATH:$HOME/.cargo/bin"
+- rustup component add rustfmt
+- cargo install bindgen
+
+script:
+- cargo build --verbose
+- cargo test --verbose
+- cargo fmt -- --check
