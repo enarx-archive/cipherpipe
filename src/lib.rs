@@ -18,15 +18,15 @@ const IPPROTO_TLS: c_int = header::IPPROTO_TLS as c_int;
 type Index = RwLock<HashMap<c_int, Arc<RwLock<Socket>>>>;
 
 trait Indexed {
-    fn del(&self, fd: c_int);
+    fn del(&self, fd: c_int) -> bool;
     fn put(&self, fd: c_int, socket: Socket);
     fn get(&self, fd: c_int) -> Option<Arc<RwLock<Socket>>>;
 }
 
 impl Indexed for Index {
-    fn del(&self, fd: c_int) {
+    fn del(&self, fd: c_int) -> bool {
         let mut lock = self.write().unwrap();
-        lock.remove(&fd);
+        lock.remove(&fd).is_some()
     }
 
     fn put(&self, fd: c_int, socket: Socket) {
@@ -265,16 +265,51 @@ pub extern "C" fn getsockopt(
     optlen: *mut socklen_t,
 ) -> c_int {
 }
-
+*/
 #[no_mangle]
 pub extern "C" fn setsockopt(
     fd: c_int,
     level: c_int,
     optname: c_int,
     optval: *const c_void,
-    optlen: socklen_t,
+    optlen: libc::socklen_t,
 ) -> c_int {
-}*/
+    if level == IPPROTO_TLS {
+        match INDEX.get(fd) {
+            None => return error(libc::EINVAL, -1),
+            Some(s) => (),
+        }
+
+        match optname {
+            _ => (), // TODO:TLS level case definition
+        }
+    }
+
+    if level != libc::SOL_SOCKET || optname != libc::SO_PROTOCOL {
+        return next!(setsockopt(fd, level, optname, optval, optlen));
+    }
+
+    if optlen != std::mem::size_of::<c_int>() as libc::socklen_t {
+        return error(libc::EINVAL, -1);
+    }
+
+    let protocol = optval as *const c_int;
+
+    if unsafe { *protocol == IPPROTO_TLS } {
+        -1 // TODO: Create the new TLS instance
+    } else {
+        match INDEX.del(fd) {
+            false => {
+                let error_number: i32 = errno::errno().into();
+                if error_number == libc::ENOENT {
+                    return error(libc::EALREADY, -1);
+                }
+                -1
+            }
+            true => 0,
+        }
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn listen(fd: c_int, n: c_int) -> c_int {
