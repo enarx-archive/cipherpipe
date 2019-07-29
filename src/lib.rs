@@ -255,17 +255,51 @@ pub extern "C" fn recvfrom(
         Some(s) => error(libc::ENOSYS, -1),
     }
 }
-/*
+
 #[no_mangle]
 pub extern "C" fn getsockopt(
     fd: c_int,
     level: c_int,
     optname: c_int,
     optval: *mut c_void,
-    optlen: *mut socklen_t,
+    optlen: *mut libc::socklen_t,
 ) -> c_int {
+    if level == IPPROTO_TLS {
+        match INDEX.get(fd) {
+            None => return error(libc::EINVAL, -1),
+            Some(s) => (),
+        }
+
+        match optname {
+            _ => (), // TODO:TLS level case definition
+        }
+        return 0;
+    }
+
+    let prot = optval as *mut c_int;
+    let ret = next!(getsockopt(fd, level, optname, optval, optlen));
+    if ret >= 0
+        && level == libc::SOL_SOCKET
+        && optname == libc::SO_PROTOCOL
+        && unsafe { is_inner_protocol(*prot) }
+    {
+        if unsafe { *optlen != std::mem::size_of::<*mut c_int>() as libc::socklen_t } {
+            return error(libc::EINVAL, -1);
+        }
+
+        match INDEX.get(fd) {
+            Some(s) => unsafe { *prot = IPPROTO_TLS },
+            None => (),
+        }
+    }
+
+    ret
 }
-*/
+
+fn is_inner_protocol(prot: c_int) -> bool {
+    prot == 0 || prot == libc::IPPROTO_TCP || prot == libc::IPPROTO_UDP
+}
+
 #[no_mangle]
 pub extern "C" fn setsockopt(
     fd: c_int,
