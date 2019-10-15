@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+extern crate bindgen;
+
+use std::env;
+use std::path::PathBuf;
+
 fn main() {
-    use std::path::Path;
+    println!("cargo:rerun-if-changed=src/header.h");
 
-    let dir = std::env::var("OUT_DIR").unwrap();
+    let bindings = bindgen::Builder::default()
+        .header("src/header.h")
+        .generate()
+        .expect("Unable to generate bindings");
 
-    let src = Path::new("src").join("header.h");
-    let dst = Path::new(&dir).join("header.rs");
-
-    std::process::Command::new("bindgen")
-        .arg(src)
-        .arg("-o")
-        .arg(dst)
-        .output()
-        .expect("failed to generate bindings from the header");
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("header.rs"))
+        .expect("Couldn't write bindings!");
 }

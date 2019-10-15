@@ -28,7 +28,6 @@ matrix:
 before_script:
 - export PATH="$PATH:$HOME/.cargo/bin"
 - rustup component add rustfmt
-- cargo install bindgen
 
 script:
 - cargo build --verbose
