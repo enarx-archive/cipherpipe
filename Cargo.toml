@@ -13,3 +13,6 @@ libc = "0.2.60"
 [lib]
 crate-type = ["cdylib"]
 name = "cipherpipe"
+
+[build-dependencies]
+bindgen = "0.51"
