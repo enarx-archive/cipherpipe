@@ -90,7 +90,8 @@ unsafe fn lookup<T: Copy>(name: &'static str) -> T {
     let n = std::ffi::CString::new(name).unwrap_or_else(|_| unreachable_unchecked());
     let f = libc::dlsym(libc::RTLD_NEXT, n.as_ptr());
     assert!(!f.is_null());
-    std::mem::transmute_copy(&*f)
+    let f = &f as *const *mut c_void as *const T;
+    *f
 }
 
 #[no_mangle]
